@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 adult_file = pd.read_csv("./adult.data", names=["age","workclass","fnlwgt",
                                                 "education","education-num",
@@ -36,17 +37,53 @@ pct_bachelors = 100 * has_bachelors.count() / total
 # (Bachelors, Masters, or Doctorate) that make more than 50K
 
 adv_degrees = ['Bachelors','Masters','Doctorate']
-edu_sal_df = adult_file[['education', 'salary']]
+country_sal_df = adult_file[['education', 'salary']]
+
+has_high_sal = country_sal_df['salary'].str.strip()=='>50K'
+high_sal_series = country_sal_df['education'][has_high_sal]
+num_high_sal = high_sal_series.count()
+
+has_adv_ed_high_sal = high_sal_series.str.strip().isin(adv_degrees)
+adv_ed_high_sal_series = high_sal_series[has_adv_ed_high_sal]
+num_adv_ed_high_sal = adv_ed_high_sal_series.count()
 
 
-has_adv_ed = edu_sal_df['education'].str.strip().isin(adv_degrees)
-sal_series = edu_sal_df[has_adv_ed]['salary']
-predef_salary_series = sal_series[sal_series.str.strip()=='>50K']
+pct_educ_salary = 100 * num_adv_ed_high_sal / total
 
-pct_educ_salary = 100 * predef_salary_series.count() / total
+# percentage of people without advanced education that make more than 50K
+pct_uneduc_salary = 100 * (num_high_sal - num_adv_ed_high_sal) / total
 
-print(pct_educ_salary)
+# minimum number of hours a person works per week
+hours_week_series = adult_file["hours-per-week"]
+min_hours_week = hours_week_series.min()
 
+# percentage of the people who work the minimum number of hours per week 
+# that have a salary of more than 50K?
+work_min_hours = hours_week_series==min_hours_week
+num_ppl_work_min_high_sal = high_sal_series[work_min_hours].count()
+
+pct_work_min_high_sal = 100 * num_ppl_work_min_high_sal / total
+
+# percentage and country with the highest percentage of people that earn >50K
+country_sal_df = adult_file[['native-country', 'salary']]
+
+has_high_sal = country_sal_df['salary'].str.strip()=='>50K'
+
+country_high_sal = country_sal_df['native-country'][has_high_sal]
+# clean undefined countries
+country_high_sal = country_high_sal.str.strip().replace('?', np.nan).dropna()
+
+# reindex eliminating rows with undefined countries
+country_sal_df = country_sal_df.reindex(index=country_high_sal.index)
+
+num_country = country_sal_df.groupby('native-country').count()
+# rename the new series column to represent the number of people that earn >50K
+num_country.columns = ['rich-population']
+
+pct_country =100 * num_country / total
+print(pct_country)
+
+# the most popular occupation for those who earn >50K in India
 
 
 
